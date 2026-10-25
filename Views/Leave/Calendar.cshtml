@@ -1,0 +1,30 @@
+@model LeaveManagement.Models.LeaveCalendarViewModel
+@{
+    ViewData["Title"] = "Team leave calendar";
+    var weekDays = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+}
+<section class="page-heading"><div><div class="eyebrow">PEOPLE OPERATIONS <span> / </span> CALENDAR</div><h1>Team leave calendar</h1><p>Approved time off across the team. Request reasons are kept private.</p></div><a class="btn btn-primary new-request" asp-action="Index">Requests</a></section>
+<section class="requests-panel calendar-panel">
+    <div class="calendar-toolbar">
+        <div class="calendar-heading"><a class="btn calendar-arrow" asp-action="Calendar" asp-route-year="@Model.PreviousMonth.Year" asp-route-month="@Model.PreviousMonth.Month" asp-route-onlyMine="@Model.OnlyMine" aria-label="Previous month">‹</a><h2>@Model.MonthTitle</h2><a class="btn calendar-arrow" asp-action="Calendar" asp-route-year="@Model.NextMonth.Year" asp-route-month="@Model.NextMonth.Month" asp-route-onlyMine="@Model.OnlyMine" aria-label="Next month">›</a><a class="btn today-button" asp-action="Calendar" asp-route-onlyMine="@Model.OnlyMine">Today</a></div>
+        @if (User.IsInRole("Manager")) { <div class="calendar-visibility"><a class="@(Model.OnlyMine ? "" : "active")" asp-action="Calendar" asp-route-year="@Model.PreviousMonth.AddMonths(1).Year" asp-route-month="@Model.PreviousMonth.AddMonths(1).Month" asp-route-onlyMine="false">Everyone</a><a class="@(Model.OnlyMine ? "active" : "")" asp-action="Calendar" asp-route-year="@Model.PreviousMonth.AddMonths(1).Year" asp-route-month="@Model.PreviousMonth.AddMonths(1).Month" asp-route-onlyMine="true">Only me</a></div> }
+    </div>
+    <div class="calendar-summary"><span>♧</span><strong>@Model.TodaySummary</strong><span>Next week: @Model.NextWeekPeopleCount people have leave booked.</span></div>
+    <div class="calendar-legend"><span><i class="legend-annual"></i>Annual leave</span><span><i class="legend-sick"></i>Sick leave</span><span><i class="legend-parental"></i>Parental leave</span><span><i class="legend-personal"></i>Personal leave</span></div>
+    <div class="calendar-scroll"><div class="calendar-grid calendar-weekdays">@foreach (var day in weekDays) { <div>@day</div> }</div>
+      <div class="calendar-grid">
+      @foreach (var day in Model.Days)
+      {
+          <div class="calendar-day @(day.IsCurrentMonth ? "" : "other-month") @(day.IsToday ? "today" : "")"><span class="calendar-date">@day.Date.Day</span>
+          @foreach (var entry in day.Entries.Take(2))
+          {
+              var typeClass = entry.LeaveType.Split(' ')[0].ToLowerInvariant();
+              <div class="calendar-entry leave-@typeClass" title="@entry.EmployeeName · @entry.LeaveType"><strong>@entry.EmployeeName</strong><small>@entry.LeaveType</small></div>
+          }
+          @if (day.Entries.Count > 2) { <small class="calendar-more">+@(day.Entries.Count - 2) more</small> }
+          </div>
+      }
+      </div>
+    </div>
+    <div class="calendar-footnote">Approved time off only. Request reasons stay private.</div>
+</section>

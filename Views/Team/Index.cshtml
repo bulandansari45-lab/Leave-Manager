@@ -1,0 +1,26 @@
+@model IReadOnlyList<LeaveManagement.Models.ApplicationUser>
+@using LeaveManagement.Models
+@{ ViewData["Title"] = "Team"; var activeCount = Model.Count(x => x.IsActive); var leaveRows = ViewBag.LeaveRows as IReadOnlyList<LeaveRequest> ?? []; var balanceYear = (int)ViewBag.BalanceYear; }
+<section class="page-heading"><div><div class="eyebrow">PEOPLE OPERATIONS <span> / </span> TEAM</div><h1>Team accounts</h1><p>Create and manage employee access to DayOff.</p></div><a class="btn btn-primary new-request" asp-action="Create"><span>＋</span> Add employee</a></section>
+@if (TempData["Success"] is string success) { <div class="alert alert-success alert-dismissible fade show">@success<button class="btn-close" data-bs-dismiss="alert"></button></div> }
+@if (TempData["ActionError"] is string actionError) { <div class="alert alert-warning alert-dismissible fade show">@actionError<button class="btn-close" data-bs-dismiss="alert"></button></div> }
+<section class="requests-panel"><div class="panel-heading"><div><h2>Employees</h2><p>@activeCount active account@(activeCount == 1 ? "" : "s") can submit and track leave requests. Set each employee's annual leave allowance here.</p></div></div>
+<div class="table-responsive"><table class="table requests-table"><thead><tr><th>EMPLOYEE</th><th>EMAIL</th><th>ANNUAL LEAVE BALANCE</th><th>ACCOUNT STATUS</th><th class="text-end">ACTION</th></tr></thead><tbody>
+@foreach (var employee in Model)
+{
+    var initials = string.Join("", employee.DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0]));
+    var yearStart = new DateTime(balanceYear, 1, 1); var yearEnd = new DateTime(balanceYear, 12, 31);
+    var approvedUsed = leaveRows.Where(x => x.Email == employee.Email && x.Status == LeaveStatus.Approved).Sum(x => Math.Max(0, ((x.EndDate.Date < yearEnd ? x.EndDate.Date : yearEnd) - (x.StartDate.Date > yearStart ? x.StartDate.Date : yearStart)).Days + 1));
+    var reservedDays = leaveRows.Where(x => x.Email == employee.Email && x.Status is LeaveStatus.Pending or LeaveStatus.NeedsMoreInfo).Sum(x => Math.Max(0, ((x.EndDate.Date < yearEnd ? x.EndDate.Date : yearEnd) - (x.StartDate.Date > yearStart ? x.StartDate.Date : yearStart)).Days + 1));
+    var balance = Math.Max(0, employee.AnnualLeaveAllowanceDays - approvedUsed - reservedDays);
+    <tr>
+        <td><div class="employee"><span class="person-avatar tone-@(initials.Length % 4)">@initials</span><span><strong>@employee.DisplayName</strong><small>Employee</small></span></div></td>
+        <td>@employee.Email</td>
+        <td><div class="team-balance"><strong>@balance of @employee.AnnualLeaveAllowanceDays days left</strong><small>@approvedUsed approved · @reservedDays reserved in @balanceYear</small></div><form asp-action="UpdateAllowance" method="post" class="allowance-form"><input type="hidden" name="userId" value="@employee.Id"/><input class="form-control" type="number" name="annualAllowanceDays" min="0" max="366" value="@employee.AnnualLeaveAllowanceDays" aria-label="Annual leave allowance for @employee.DisplayName"/><span>days</span><button class="btn btn-sm btn-outline-primary" type="submit">Save</button></form></td>
+        <td><span class="status @(employee.IsActive ? "status-approved" : "status-inactive")"><i></i>@(employee.IsActive ? "Active" : "Inactive")</span></td>
+        <td class="text-end"><form asp-action="SetActive" method="post" onsubmit="return confirm('Change this employee account status?');"><input type="hidden" name="userId" value="@employee.Id"/><button class="btn btn-sm @(employee.IsActive ? "btn-outline-danger" : "btn-outline-success")" type="submit" name="isActive" value="@(employee.IsActive ? "false" : "true")">@(employee.IsActive ? "Deactivate" : "Reactivate")</button></form></td>
+    </tr>
+}
+</tbody></table></div>
+<div class="table-footer"><span>Inactive accounts cannot sign in. Their leave history is retained.</span><span>@Model.Count total</span></div></section>
+

@@ -1,0 +1,33 @@
+@model LeaveManagement.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Sign in";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in to DayOff</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+</head>
+<body class="login-page">
+<div class="login-frame"><aside class="login-story"><a class="login-brand" asp-controller="Account" asp-action="Login"><span>D</span> dayoff</a><div class="login-story-content"><h1>Time off, sorted.</h1><p>Request leave, get decisions fast, and see who's away.</p><div class="login-preview approved"><span>✓</span><div><strong>Annual leave approved</strong><small>Oct 29, 1 day</small></div></div><div class="login-preview pending"><span>◷</span><div><strong>Personal leave pending</strong><small>Oct 26, 1 day</small></div></div></div><p class="login-privacy">Your work account keeps your data private.</p></aside>
+<main class="login-form-pane"><div class="login-form-wrap"><h2>Sign in to DayOff</h2><p class="login-intro">Use your work account to manage time away.</p>
+@if (TempData["PasswordResetSuccess"] is string resetMessage) { <div class="dev-reset-notice" role="status">@resetMessage</div> }<form asp-action="Login" method="post"><input asp-for="ReturnUrl" type="hidden"/><div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+<div class="mb-3"><label asp-for="Email" class="form-label">Work email</label><div class="login-input-wrap"><span aria-hidden="true">✉</span><input asp-for="Email" class="form-control" autocomplete="username" placeholder="name@company.com"/></div><span asp-validation-for="Email" class="field-validation"></span></div>
+<div class="mb-2"><div class="login-password-label"><label asp-for="Password" class="form-label">Password</label><a asp-action="ForgotPassword">Forgot password?</a></div><div class="login-input-wrap"><span aria-hidden="true">♙</span><input asp-for="Password" class="form-control" autocomplete="current-password" placeholder="Enter your password"/><button type="button" class="password-eye" data-toggle-password="Password" aria-label="Show password">◉</button></div><span asp-validation-for="Password" class="field-validation"></span></div>
+<label class="remember-row"><input asp-for="RememberMe"/> Keep me signed in</label><button type="submit" class="btn btn-primary login-button">Sign in</button></form>
+
+<div class="demo-accounts"><strong>Trying the demo? Fill in a sample account.</strong><div><button type="button" class="demo-fill" data-email="aarav@example.com" data-password="Employee123!">Use employee demo</button><button type="button" class="demo-fill" data-email="manager@dayoff.local" data-password="Manager123!">Use manager demo</button></div></div>
+</div></main></div>
+<script src="~/lib/jquery/dist/jquery.min.js"></script><script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.querySelectorAll('.demo-fill').forEach(button=>button.addEventListener('click',()=>{document.getElementById('Email').value=button.dataset.email;document.getElementById('Password').value=button.dataset.password;document.getElementById('Password').focus();}));
+document.querySelectorAll('[data-toggle-password]').forEach(button=>button.addEventListener('click',()=>{const input=document.getElementById(button.dataset.togglePassword);const show=input.type==='password';input.type=show?'text':'password';button.setAttribute('aria-label',show?'Hide password':'Show password');}));
+</script>
+</body>
+</html>
+

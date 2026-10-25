@@ -1,0 +1,84 @@
+@model IReadOnlyList<LeaveManagement.Models.LeaveRequest>
+@using LeaveManagement.Models
+@{
+    ViewData["Title"] = "Leave overview";
+    var totalRequests = (int)ViewBag.TotalRequests;
+    var pendingCount = (int)ViewBag.PendingCount;
+    var approvedCount = (int)ViewBag.ApprovedCount;
+    var rejectedCount = (int)ViewBag.RejectedCount;
+    var filteredCount = (int)ViewBag.FilteredCount;
+    var currentPage = (int)ViewBag.CurrentPage;
+    var totalPages = (int)ViewBag.TotalPages;
+    var currentStatus = (string)ViewBag.CurrentStatus;
+    var searchText = (string)ViewBag.Search;
+    var currentSort = (string)ViewBag.Sort;
+    var isManager = (bool)ViewBag.IsManager;
+    var pending = pendingCount;
+    var approved = approvedCount;
+    var days = (int)ViewBag.ApprovedDaysOff;
+    var requestLeaveType = ViewBag.RequestLeaveType as string ?? "Annual leave";
+    var requestStartDate = ViewBag.RequestStartDate as string ?? "";
+    var requestEndDate = ViewBag.RequestEndDate as string ?? "";
+    var requestReason = ViewBag.RequestReason as string ?? "";
+}
+<section class="page-heading"><div><div class="eyebrow">PEOPLE OPERATIONS <span> / </span> OVERVIEW</div><h1>Leave overview</h1><p>@(isManager ? "Review requests and keep your team in sync." : "Your time off requests, all in one place.")</p></div><button class="btn btn-primary new-request" data-bs-toggle="modal" data-bs-target="#requestModal"><span>＋</span> New request</button></section>
+@if (TempData["Success"] is string success) { <div class="alert alert-success alert-dismissible fade show" role="status">@success<button class="btn-close" data-bs-dismiss="alert" aria-label="Dismiss"></button></div> }
+@if (TempData["ActionError"] is string actionError) { <div class="alert alert-warning alert-dismissible fade show" role="alert">@actionError<button class="btn-close" data-bs-dismiss="alert" aria-label="Dismiss"></button></div> }
+@if (isManager && ViewBag.UndoRequestId is int undoId && ViewBag.UndoDecisionTicks is long ticks && ViewBag.UndoExpiresAt is long expiresAt)
+{
+<div class="undo-banner" data-expires="@expiresAt"><span>@(TempData["Success"] ?? "Decision saved.")</span><form asp-action="UndoDecision" method="post"><input type="hidden" name="id" value="@undoId"/><input type="hidden" name="decisionTicks" value="@ticks"/><button type="submit" class="btn btn-sm btn-light">Undo <span class="undo-countdown">10</span>s</button></form></div>
+}
+@if (!isManager)
+{
+<section class="balance-strip" aria-label="Annual leave balance for @ViewBag.BalanceYear"><span>Annual leave balance · @ViewBag.BalanceYear</span><strong>@ViewBag.AnnualRemainingDays <small>available</small></strong><span>@ViewBag.AnnualApprovedDays approved · @ViewBag.AnnualPendingDays reserved · @ViewBag.AnnualAllowanceDays total</span></section>
+}
+<div class="summary-strip" aria-label="Request summary"><div><span>Total requests</span><strong>@totalRequests</strong></div><div><span>Awaiting review</span><strong>@pending</strong></div><div><span>Approved</span><strong>@approved</strong></div><div><span>Approved days off</span><strong>@days</strong></div></div>
+
+<section class="requests-panel"><div class="panel-heading"><div><h2>Leave requests</h2><p>@(isManager ? "Review and manage time off across your team." : "Track the status of your time off requests.")</p></div>@if (isManager) {  }</div>
+<div class="request-tools"><div class="filter-tabs" role="group" aria-label="Filter requests">
+<a class="@(currentStatus == "All" ? "active" : "")" href="@Url.Action("Index", new { page = 1, status = "All", search = searchText, sort = currentSort })">All <span>@totalRequests</span></a>
+<a class="@(currentStatus == "Pending" ? "active" : "")" href="@Url.Action("Index", new { page = 1, status = "Pending", search = searchText, sort = currentSort })">Pending <span>@ViewBag.PendingFilterCount</span></a>
+<a class="@(currentStatus == "Approved" ? "active" : "")" href="@Url.Action("Index", new { page = 1, status = "Approved", search = searchText, sort = currentSort })">Approved <span>@approvedCount</span></a>
+<a class="@(currentStatus == "Rejected" ? "active" : "")" href="@Url.Action("Index", new { page = 1, status = "Rejected", search = searchText, sort = currentSort })">Rejected <span>@rejectedCount</span></a>
+</div>@if (isManager) { <form id="csvExportForm" asp-action="ExportCsv" method="get"><input type="hidden" id="csvExportStatus" name="status" value="@currentStatus"/><button class="btn btn-outline-primary" type="submit">Download CSV</button></form> }
+<form id="requestQueryForm" class="request-search" asp-action="Index" method="get"><input type="hidden" name="status" value="@currentStatus"/><input type="hidden" name="page" value="1"/><label class="visually-hidden" for="requestSearch">Search requests</label><input id="requestSearch" name="search" value="@searchText" type="search" class="form-control" placeholder="Search employee or leave type"/><label class="visually-hidden" for="dateSort">Sort by submission date</label><select id="dateSort" name="sort" class="form-select"><option value="newest" selected="@(currentSort == "newest")">Latest submitted first</option><option value="oldest" selected="@(currentSort == "oldest")">Earliest submitted first</option></select></form><nav class="request-pagination request-pagination-top" aria-label="Leave request pages">@if (currentPage > 1) { <a class="btn btn-sm btn-outline-secondary" aria-label="Previous page" href="@Url.Action("Index", new { page = currentPage - 1, status = currentStatus, search = searchText, sort = currentSort })">Previous</a> } else { <span class="btn btn-sm btn-outline-secondary disabled">Previous</span> }<span>Page @currentPage of @totalPages</span>@if (currentPage < totalPages) { <a class="btn btn-sm btn-outline-secondary" aria-label="Next page" href="@Url.Action("Index", new { page = currentPage + 1, status = currentStatus, search = searchText, sort = currentSort })">Next</a> } else { <span class="btn btn-sm btn-outline-secondary disabled">Next</span> }</nav></div><div class="table-responsive"><table class="table requests-table"><thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th>Duration</th><th>Status</th><th class="text-end">Action</th></tr></thead><tbody>
+@foreach (var item in Model)
+{
+ var initials = string.Join("", item.EmployeeName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0]));
+ <tr data-status="@item.Status" data-date="@item.SubmittedAt.Ticks" data-search="@($"{item.EmployeeName} {item.Email} {item.LeaveType} {item.Status}")"><td><div class="employee"><span class="person-avatar tone-@(item.Id % 4)">@initials</span><span><strong>@item.EmployeeName</strong><small>@item.Email</small></span></div></td><td><span class="type-dot type-@item.LeaveType.Split(' ')[0].ToLowerInvariant()"></span>@item.LeaveType</td><td>@item.StartDate.ToString("MMM d") – @item.EndDate.ToString("MMM d, yyyy")</td><td>@item.Days @(item.Days == 1 ? "day" : "days")</td><td><span class="status status-@item.Status.ToString().ToLowerInvariant()"><i></i>@(item.Status == LeaveStatus.NeedsMoreInfo ? "Needs info" : item.Status.ToString())</span>
+ @if (item.Status != LeaveStatus.Pending && item.DecisionAt.HasValue && !string.IsNullOrWhiteSpace(item.DecisionByName)) { <small class="decision-meta">by @item.DecisionByName · @item.DecisionAt.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</small> }
+ @if (item.Status == LeaveStatus.Rejected && !string.IsNullOrWhiteSpace(item.RejectionReason)) { <small class="decision-meta">Reason: @item.RejectionReason</small> }
+ @if (item.Status == LeaveStatus.NeedsMoreInfo && !string.IsNullOrWhiteSpace(item.MoreInfoRequest)) { <small class="decision-meta">Asked: @item.MoreInfoRequest</small> }
+ @if (item.Status == LeaveStatus.NeedsMoreInfo && !isManager) { <form asp-action="AddInformation" method="post" class="response-form"><input type="hidden" name="id" value="@item.Id"/><label class="visually-hidden" for="response-@item.Id">Your response</label><input class="form-control form-control-sm" id="response-@item.Id" name="response" maxlength="500" required placeholder="Add the requested information"/><button class="btn btn-sm btn-primary mt-1">Send response</button></form> }
+ @if (item.DecisionEmailStatus != "Unknown") { <small class="decision-meta">Email notice: @item.DecisionEmailStatus</small> }
+ </td><td class="text-end">
+ @if (!isManager && item.Status == LeaveStatus.Pending) { <form asp-action="Delete" method="post" onsubmit="return confirm('Delete this pending leave request?');"><input type="hidden" name="id" value="@item.Id"/><button class="btn btn-sm btn-outline-danger">Cancel request</button></form> }
+ else if (isManager && item.Status == LeaveStatus.Pending) { <div class="row-actions"><form asp-action="Decide" method="post"><input type="hidden" name="id" value="@item.Id"/><input type="hidden" name="status" value="Approved"/><button class="btn btn-sm btn-outline-success">Approve</button></form><button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal" data-request-id="@item.Id">Reject</button><button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#moreInfoModal" data-request-id="@item.Id">More info</button></div> }
+ else { <span class="muted-action">—</span> }
+ </td></tr>
+}
+</tbody></table></div><div class="table-footer"><span>Showing <strong>@(filteredCount == 0 ? 0 : (currentPage - 1) * 10 + 1)</strong>–<strong>@Math.Min(currentPage * 10, filteredCount)</strong> of <strong>@filteredCount</strong> requests</span><nav class="request-pagination" aria-label="Leave request pages">@if (currentPage > 1) { <a class="btn btn-sm btn-outline-secondary" aria-label="Previous page" href="@Url.Action("Index", new { page = currentPage - 1, status = currentStatus, search = searchText, sort = currentSort })">Previous</a> } else { <span class="btn btn-sm btn-outline-secondary disabled">Previous</span> }<span>Page @currentPage of @totalPages</span>@if (currentPage < totalPages) { <a class="btn btn-sm btn-outline-secondary" aria-label="Next page" href="@Url.Action("Index", new { page = currentPage + 1, status = currentStatus, search = searchText, sort = currentSort })">Next</a> } else { <span class="btn btn-sm btn-outline-secondary disabled">Next</span> }</nav><span>Saved in your leave database <b>✓</b></span></div></section><div class="modal fade" id="requestModal" tabindex="-1" aria-labelledby="requestTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form asp-action="Create" method="post"><div class="modal-header"><div><div class="eyebrow">TIME AWAY</div><h2 class="modal-title" id="requestTitle">New leave request</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">
+@if (ViewBag.RequestError is string requestError)
+{
+  <div class="alert alert-warning" role="alert">@requestError</div>
+}
+<div class="requesting-as">Submitting as <strong>@ViewBag.CurrentUserName</strong><span>@ViewBag.CurrentUserEmail</span></div><div class="row g-3"><div class="col-12"><label class="form-label" for="LeaveType">Leave type</label><select class="form-select" id="LeaveType" name="LeaveType"><option value="Annual leave" selected="@(requestLeaveType == "Annual leave" ? "selected" : null)">Annual leave</option><option value="Sick leave" selected="@(requestLeaveType == "Sick leave" ? "selected" : null)">Sick leave</option><option value="Personal leave" selected="@(requestLeaveType == "Personal leave" ? "selected" : null)">Personal leave</option><option value="Parental leave" selected="@(requestLeaveType == "Parental leave" ? "selected" : null)">Parental leave</option></select></div><div class="col-md-6"><label class="form-label" for="StartDate">Start date</label><input class="form-control" id="StartDate" name="StartDate" type="date" value="@requestStartDate" required /></div><div class="col-md-6"><label class="form-label" for="EndDate">End date</label><input class="form-control" id="EndDate" name="EndDate" type="date" value="@requestEndDate" required /></div><div class="col-12"><label class="form-label" for="Reason">Reason</label><textarea class="form-control" id="Reason" name="Reason" rows="3" maxlength="500" required placeholder="A short note for the reviewer">@requestReason</textarea></div></div></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Submit request <span>→</span></button></div></form></div></div></div>
+@if (isManager)
+{
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form asp-action="Decide" method="post"><div class="modal-header"><h2 class="modal-title" id="rejectTitle">Reject request</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><input type="hidden" name="id"/><input type="hidden" name="status" value="Rejected"/><label class="form-label" for="rejectionReason">Reason for rejection</label><textarea class="form-control" id="rejectionReason" name="rejectionReason" maxlength="500" minlength="3" required rows="3" placeholder="Explain why this request cannot be approved"></textarea></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-danger">Reject request</button></div></form></div></div></div>
+<div class="modal fade" id="moreInfoModal" tabindex="-1" aria-labelledby="moreInfoTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form asp-action="RequestMoreInfo" method="post"><div class="modal-header"><h2 class="modal-title" id="moreInfoTitle">Request more information</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><input type="hidden" name="id"/><label class="form-label" for="moreInfoMessage">What should the employee clarify?</label><textarea class="form-control" id="moreInfoMessage" name="message" maxlength="500" minlength="3" required rows="3" placeholder="Write a short question"></textarea></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Send request</button></div></form></div></div></div>
+}
+@section Scripts {
+<script src="~/js/leave.js" asp-append-version="true"></script>
+<script>
+document.querySelectorAll('#rejectModal, #moreInfoModal').forEach(m => m.addEventListener('show.bs.modal', e => { const id=e.relatedTarget?.dataset.requestId; const input=m.querySelector('input[name="id"]'); if(input && id) input.value=id; }));
+@if (ViewBag.OpenRequestModal == true) { <text>document.addEventListener('DOMContentLoaded',()=>bootstrap.Modal.getOrCreateInstance(document.getElementById('requestModal')).show());</text> }
+</script>
+}
+
+
+
+
+
+
+

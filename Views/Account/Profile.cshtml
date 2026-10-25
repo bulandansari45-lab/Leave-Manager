@@ -1,0 +1,18 @@
+@model LeaveManagement.Models.ProfileViewModel
+@{ ViewData["Title"] = "Account settings"; }
+<section class="settings-shell">
+  <h1>Account settings</h1>
+  <nav class="settings-tabs" aria-label="Account settings"><a class="active" asp-controller="Account" asp-action="Profile" aria-current="page">Profile</a><a asp-controller="Account" asp-action="ChangePassword">Password</a></nav>
+  @if (TempData["Success"] is string success) { <div class="alert alert-success" role="status">@success</div> }
+  <form asp-action="Profile" method="post" enctype="multipart/form-data" class="profile-form">
+    <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+    <div class="profile-photo-row"><div class="profile-photo-preview" id="photoPreview">@if (!string.IsNullOrWhiteSpace(Model.ProfilePhotoPath)) { <img src="@Model.ProfilePhotoPath" alt="Profile photo"/> } else { <span>@string.Join("", Model.DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(x => x[0]))</span> }</div><div><label class="btn btn-outline-secondary" for="Photo">Upload photo</label><input asp-for="Photo" id="Photo" type="file" accept="image/png,image/jpeg,image/webp" class="visually-hidden"/><span asp-validation-for="Photo" class="field-validation d-block"></span><small>JPG, PNG, or WebP · up to 5 MB</small></div></div>
+    <div class="profile-fields"><div><label asp-for="DisplayName" class="form-label">Name</label><input asp-for="DisplayName" class="form-control" autocomplete="name" maxlength="100" required/><span asp-validation-for="DisplayName" class="field-validation"></span></div><div><label asp-for="Email" class="form-label">Email</label><input asp-for="Email" class="form-control" readonly aria-describedby="emailHelp"/><small id="emailHelp">Contact your manager to change your sign-in email.</small></div><div><label asp-for="Designation" class="form-label">Designation</label><input asp-for="Designation" class="form-control" maxlength="100" placeholder="e.g. Product Designer"/><span asp-validation-for="Designation" class="field-validation"></span></div></div>
+    <div class="password-actions"><a class="btn btn-outline-secondary" asp-controller="Leave" asp-action="Index">Cancel</a><button type="submit" class="btn btn-primary">Save profile</button></div>
+  </form>
+</section>
+@section Scripts {
+<script>
+document.getElementById('Photo')?.addEventListener('change', event=>{const file=event.target.files?.[0];if(!file)return;if(file.size>5*1024*1024){event.target.value='';alert('Choose an image smaller than 5 MB.');return;}const preview=document.getElementById('photoPreview');const image=document.createElement('img');image.alt='Profile photo preview';image.src=URL.createObjectURL(file);preview.replaceChildren(image);});
+</script>
+}
