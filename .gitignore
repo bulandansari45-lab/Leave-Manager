@@ -1,0 +1,32 @@
+# .NET build output
+**/bin/
+**/obj/
+.vs/
+
+# Visual Studio user state
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local configuration and secrets
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.Local.json
+secrets.json
+.env
+.env.*
+
+# Local databases, logs, and backups
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+*.bak
+*.log
+logs/
+
+# Uploaded user content
+wwwroot/uploads/
+wwwroot/profile-photos/
